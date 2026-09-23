@@ -1,61 +1,76 @@
-import { defaultConfig } from './defaultConfig.js';
+import { defaultConfig } from "./defaultConfig.js";
 
 // --------------------------------------------------
 // Authentication configuration
 // --------------------------------------------------
 
 const AUTHENTICATION_KEYS = Object.freeze([
-  'accessToken',
-  'session',
+  "accessToken",
+  "session",
+  "refreshCookie",
 ]);
 
 const ACCESS_TOKEN_KEYS = Object.freeze([
-  'algorithm',
-  'expiresInSeconds',
-  'issuer',
-  'audience',
-  'secret',
+  "algorithm",
+  "expiresInSeconds",
+  "issuer",
+  "audience",
+  "secret",
 ]);
 
-const ACCESS_TOKEN_ALGORITHMS =
-  Object.freeze([
-    'HS256',
-  ]);
+const ACCESS_TOKEN_ALGORITHMS = Object.freeze([
+  "HS256",
+]);
 
 const SESSION_KEYS = Object.freeze([
-  'expiresInSeconds',
-  'refreshToken',
+  "expiresInSeconds",
+  "refreshToken",
 ]);
 
 const REFRESH_TOKEN_KEYS = Object.freeze([
-  'bytes',
+  "bytes",
 ]);
+
+const REFRESH_COOKIE_KEYS = Object.freeze([
+  "name",
+  "httpOnly",
+  "secure",
+  "sameSite",
+  "path",
+]);
+
+const REFRESH_COOKIE_SAME_SITE_VALUES =
+  Object.freeze([
+    "strict",
+    "lax",
+    "none",
+  ]);
 
 // --------------------------------------------------
 // Two-factor configuration
 // --------------------------------------------------
 
 const TWO_FACTOR_MODES = Object.freeze([
-  'email',
-  'mobile',
-  'email_mobile',
+  "email",
+  "mobile",
+  "email_mobile",
 ]);
 
 const TWO_FACTOR_KEYS = Object.freeze([
-  'mode',
-  'otp',
-  'development',
+  "mode",
+  "otp",
+  "development",
 ]);
 
 const OTP_KEYS = Object.freeze([
-  'length',
-  'expiresInSeconds',
-  'maxAttempts',
-  'maxResends',
+  "length",
+  "expiresInSeconds",
+  "maxAttempts",
+  "maxResends",
 ]);
 
 const DEVELOPMENT_KEYS = Object.freeze([
-  'exposeOtp',
+  "exposeOtp",
 ]);
 
 // --------------------------------------------------
@@ -65,8 +80,11 @@ const DEVELOPMENT_KEYS = Object.freeze([
 function isPlainObject(value) {
   return (
     value !== null &&
-    typeof value === 'object' &&
-    [Object.prototype, null].includes(
+    typeof value === "object" &&
+    [
+      Object.prototype,
+      null,
+    ].includes(
       Object.getPrototypeOf(value),
     )
   );
@@ -78,7 +96,7 @@ function hasUnsupportedKeys(
 ) {
   return Reflect.ownKeys(object).some(
     (key) =>
-      typeof key !== 'string' ||
+      typeof key !== "string" ||
       !supportedKeys.includes(key),
   );
 }
@@ -87,21 +105,23 @@ function hasUnsupportedKeys(
 // Normalize configuration
 // --------------------------------------------------
 
-export function normalizeConfig(options = {}) {
+export function normalizeConfig(
+  options = {},
+) {
   if (!isPlainObject(options)) {
     throw new TypeError(
-      'Auth router options must be a plain object',
+      "Auth router options must be a plain object",
     );
   }
 
   const supported = [
-    'masterEncryptionKey',
-    'masterHmacKey',
-    'encryptionKeyVersion',
-    'hmacKeyVersion',
-    'captchaSecretKey',
-    'authentication',
-    'twoFactor',
+    "masterEncryptionKey",
+    "masterHmacKey",
+    "encryptionKeyVersion",
+    "hmacKeyVersion",
+    "captchaSecretKey",
+    "authentication",
+    "twoFactor",
   ];
 
   if (
@@ -111,7 +131,7 @@ export function normalizeConfig(options = {}) {
     )
   ) {
     throw new TypeError(
-      'Unsupported auth router configuration option',
+      "Unsupported auth router configuration option",
     );
   }
 
@@ -122,7 +142,7 @@ export function normalizeConfig(options = {}) {
   const providedAuthentication =
     Object.prototype.hasOwnProperty.call(
       options,
-      'authentication',
+      "authentication",
     )
       ? options.authentication
       : {};
@@ -133,7 +153,7 @@ export function normalizeConfig(options = {}) {
     )
   ) {
     throw new TypeError(
-      'authentication must be a plain object',
+      "authentication must be a plain object",
     );
   }
 
@@ -144,7 +164,7 @@ export function normalizeConfig(options = {}) {
     )
   ) {
     throw new TypeError(
-      'Unsupported authentication configuration option',
+      "Unsupported authentication configuration option",
     );
   }
 
@@ -155,7 +175,7 @@ export function normalizeConfig(options = {}) {
   const providedAccessToken =
     Object.prototype.hasOwnProperty.call(
       providedAuthentication,
-      'accessToken',
+      "accessToken",
     )
       ? providedAuthentication.accessToken
       : {};
@@ -166,7 +186,7 @@ export function normalizeConfig(options = {}) {
     )
   ) {
     throw new TypeError(
-      'authentication.accessToken must be a plain object',
+      "authentication.accessToken must be a plain object",
     );
   }
 
@@ -177,7 +197,7 @@ export function normalizeConfig(options = {}) {
     )
   ) {
     throw new TypeError(
-      'Unsupported authentication.accessToken configuration option',
+      "Unsupported authentication.accessToken configuration option",
     );
   }
 
@@ -198,7 +218,7 @@ export function normalizeConfig(options = {}) {
     )
   ) {
     throw new TypeError(
-      'authentication.accessToken.algorithm must be HS256',
+      "authentication.accessToken.algorithm must be HS256",
     );
   }
 
@@ -213,7 +233,7 @@ export function normalizeConfig(options = {}) {
     accessToken.expiresInSeconds < 60
   ) {
     throw new TypeError(
-      'authentication.accessToken.expiresInSeconds must be an integer of at least 60',
+      "authentication.accessToken.expiresInSeconds must be an integer of at least 60",
     );
   }
 
@@ -223,11 +243,11 @@ export function normalizeConfig(options = {}) {
 
   if (
     typeof accessToken.issuer !==
-      'string' ||
+      "string" ||
     !accessToken.issuer.trim()
   ) {
     throw new TypeError(
-      'authentication.accessToken.issuer must be a non-empty string',
+      "authentication.accessToken.issuer must be a non-empty string",
     );
   }
 
@@ -237,11 +257,11 @@ export function normalizeConfig(options = {}) {
 
   if (
     typeof accessToken.audience !==
-      'string' ||
+      "string" ||
     !accessToken.audience.trim()
   ) {
     throw new TypeError(
-      'authentication.accessToken.audience must be a non-empty string',
+      "authentication.accessToken.audience must be a non-empty string",
     );
   }
 
@@ -251,11 +271,11 @@ export function normalizeConfig(options = {}) {
 
   if (
     typeof accessToken.secret !==
-      'string' ||
+      "string" ||
     !accessToken.secret.trim()
   ) {
     throw new TypeError(
-      'authentication.accessToken.secret must be a non-empty string',
+      "authentication.accessToken.secret must be a non-empty string",
     );
   }
 
@@ -266,7 +286,7 @@ export function normalizeConfig(options = {}) {
   const providedSession =
     Object.prototype.hasOwnProperty.call(
       providedAuthentication,
-      'session',
+      "session",
     )
       ? providedAuthentication.session
       : {};
@@ -277,7 +297,7 @@ export function normalizeConfig(options = {}) {
     )
   ) {
     throw new TypeError(
-      'authentication.session must be a plain object',
+      "authentication.session must be a plain object",
     );
   }
 
@@ -288,7 +308,7 @@ export function normalizeConfig(options = {}) {
     )
   ) {
     throw new TypeError(
-      'Unsupported authentication.session configuration option',
+      "Unsupported authentication.session configuration option",
     );
   }
 
@@ -299,7 +319,7 @@ export function normalizeConfig(options = {}) {
   const providedRefreshToken =
     Object.prototype.hasOwnProperty.call(
       providedSession,
-      'refreshToken',
+      "refreshToken",
     )
       ? providedSession.refreshToken
       : {};
@@ -310,7 +330,7 @@ export function normalizeConfig(options = {}) {
     )
   ) {
     throw new TypeError(
-      'authentication.session.refreshToken must be a plain object',
+      "authentication.session.refreshToken must be a plain object",
     );
   }
 
@@ -321,7 +341,7 @@ export function normalizeConfig(options = {}) {
     )
   ) {
     throw new TypeError(
-      'Unsupported authentication.session.refreshToken configuration option',
+      "Unsupported authentication.session.refreshToken configuration option",
     );
   }
 
@@ -352,7 +372,7 @@ export function normalizeConfig(options = {}) {
     session.expiresInSeconds < 60
   ) {
     throw new TypeError(
-      'authentication.session.expiresInSeconds must be an integer of at least 60',
+      "authentication.session.expiresInSeconds must be an integer of at least 60",
     );
   }
 
@@ -367,7 +387,135 @@ export function normalizeConfig(options = {}) {
     refreshToken.bytes < 32
   ) {
     throw new TypeError(
-      'authentication.session.refreshToken.bytes must be an integer of at least 32',
+      "authentication.session.refreshToken.bytes must be an integer of at least 32",
+    );
+  }
+
+  // --------------------------------------------------
+  // Refresh cookie configuration
+  // --------------------------------------------------
+
+  const providedRefreshCookie =
+    Object.prototype.hasOwnProperty.call(
+      providedAuthentication,
+      "refreshCookie",
+    )
+      ? providedAuthentication.refreshCookie
+      : {};
+
+  if (
+    !isPlainObject(
+      providedRefreshCookie,
+    )
+  ) {
+    throw new TypeError(
+      "authentication.refreshCookie must be a plain object",
+    );
+  }
+
+  if (
+    hasUnsupportedKeys(
+      providedRefreshCookie,
+      REFRESH_COOKIE_KEYS,
+    )
+  ) {
+    throw new TypeError(
+      "Unsupported authentication.refreshCookie configuration option",
+    );
+  }
+
+  const refreshCookie = {
+    ...defaultConfig.authentication
+      .refreshCookie,
+
+    ...providedRefreshCookie,
+  };
+
+  // --------------------------------------------------
+  // Validate refresh cookie name
+  // --------------------------------------------------
+
+  if (
+    typeof refreshCookie.name !==
+      "string" ||
+    !refreshCookie.name.trim()
+  ) {
+    throw new TypeError(
+      "authentication.refreshCookie.name must be a non-empty string",
+    );
+  }
+
+  // --------------------------------------------------
+  // Validate HttpOnly
+  // --------------------------------------------------
+
+  if (
+    typeof refreshCookie.httpOnly !==
+    "boolean"
+  ) {
+    throw new TypeError(
+      "authentication.refreshCookie.httpOnly must be a boolean",
+    );
+  }
+
+  if (
+    refreshCookie.httpOnly !== true
+  ) {
+    throw new TypeError(
+      "authentication.refreshCookie.httpOnly must be true",
+    );
+  }
+
+  // --------------------------------------------------
+  // Validate Secure
+  // --------------------------------------------------
+
+  if (
+    typeof refreshCookie.secure !==
+    "boolean"
+  ) {
+    throw new TypeError(
+      "authentication.refreshCookie.secure must be a boolean",
+    );
+  }
+
+  // --------------------------------------------------
+  // Validate SameSite
+  // --------------------------------------------------
+
+  if (
+    typeof refreshCookie.sameSite !==
+      "string" ||
+    !REFRESH_COOKIE_SAME_SITE_VALUES.includes(
+      refreshCookie.sameSite,
+    )
+  ) {
+    throw new TypeError(
+      "authentication.refreshCookie.sameSite must be one of: strict, lax, none",
+    );
+  }
+
+  if (
+    refreshCookie.sameSite ===
+      "none" &&
+    refreshCookie.secure !== true
+  ) {
+    throw new TypeError(
+      "authentication.refreshCookie.secure must be true when sameSite is none",
+    );
+  }
+
+  // --------------------------------------------------
+  // Validate refresh cookie path
+  // --------------------------------------------------
+
+  if (
+    typeof refreshCookie.path !==
+      "string" ||
+    !refreshCookie.path.startsWith("/")
+  ) {
+    throw new TypeError(
+      "authentication.refreshCookie.path must start with /",
     );
   }
 
@@ -381,6 +529,7 @@ export function normalizeConfig(options = {}) {
 
     accessToken,
     session,
+    refreshCookie,
   };
 
   // --------------------------------------------------
@@ -390,7 +539,7 @@ export function normalizeConfig(options = {}) {
   const providedTwoFactor =
     Object.prototype.hasOwnProperty.call(
       options,
-      'twoFactor',
+      "twoFactor",
     )
       ? options.twoFactor
       : {};
@@ -401,7 +550,7 @@ export function normalizeConfig(options = {}) {
     )
   ) {
     throw new TypeError(
-      'twoFactor must be a plain object',
+      "twoFactor must be a plain object",
     );
   }
 
@@ -412,7 +561,7 @@ export function normalizeConfig(options = {}) {
     )
   ) {
     throw new TypeError(
-      'Unsupported twoFactor configuration option',
+      "Unsupported twoFactor configuration option",
     );
   }
 
@@ -423,14 +572,14 @@ export function normalizeConfig(options = {}) {
   const providedOtp =
     Object.prototype.hasOwnProperty.call(
       providedTwoFactor,
-      'otp',
+      "otp",
     )
       ? providedTwoFactor.otp
       : {};
 
   if (!isPlainObject(providedOtp)) {
     throw new TypeError(
-      'twoFactor.otp must be a plain object',
+      "twoFactor.otp must be a plain object",
     );
   }
 
@@ -441,7 +590,7 @@ export function normalizeConfig(options = {}) {
     )
   ) {
     throw new TypeError(
-      'Unsupported twoFactor.otp configuration option',
+      "Unsupported twoFactor.otp configuration option",
     );
   }
 
@@ -457,7 +606,7 @@ export function normalizeConfig(options = {}) {
   const providedDevelopment =
     Object.prototype.hasOwnProperty.call(
       providedTwoFactor,
-      'development',
+      "development",
     )
       ? providedTwoFactor.development
       : {};
@@ -468,7 +617,7 @@ export function normalizeConfig(options = {}) {
     )
   ) {
     throw new TypeError(
-      'twoFactor.development must be a plain object',
+      "twoFactor.development must be a plain object",
     );
   }
 
@@ -479,12 +628,14 @@ export function normalizeConfig(options = {}) {
     )
   ) {
     throw new TypeError(
-      'Unsupported twoFactor.development configuration option',
+      "Unsupported twoFactor.development configuration option",
     );
   }
 
   const development = {
-    ...defaultConfig.twoFactor.development,
+    ...defaultConfig.twoFactor
+      .development,
+
     ...providedDevelopment,
   };
 
@@ -510,7 +661,7 @@ export function normalizeConfig(options = {}) {
     )
   ) {
     throw new TypeError(
-      'twoFactor.mode must be one of: email, mobile, email_mobile',
+      "twoFactor.mode must be one of: email, mobile, email_mobile",
     );
   }
 
@@ -519,12 +670,14 @@ export function normalizeConfig(options = {}) {
   // --------------------------------------------------
 
   if (
-    !Number.isInteger(otp.length) ||
+    !Number.isInteger(
+      otp.length,
+    ) ||
     otp.length < 4 ||
     otp.length > 8
   ) {
     throw new TypeError(
-      'twoFactor.otp.length must be an integer between 4 and 8',
+      "twoFactor.otp.length must be an integer between 4 and 8",
     );
   }
 
@@ -535,7 +688,7 @@ export function normalizeConfig(options = {}) {
     otp.expiresInSeconds < 60
   ) {
     throw new TypeError(
-      'twoFactor.otp.expiresInSeconds must be an integer of at least 60',
+      "twoFactor.otp.expiresInSeconds must be an integer of at least 60",
     );
   }
 
@@ -546,7 +699,7 @@ export function normalizeConfig(options = {}) {
     otp.maxAttempts < 1
   ) {
     throw new TypeError(
-      'twoFactor.otp.maxAttempts must be a positive integer',
+      "twoFactor.otp.maxAttempts must be a positive integer",
     );
   }
 
@@ -557,7 +710,7 @@ export function normalizeConfig(options = {}) {
     otp.maxResends < 0
   ) {
     throw new TypeError(
-      'twoFactor.otp.maxResends must be a non-negative integer',
+      "twoFactor.otp.maxResends must be a non-negative integer",
     );
   }
 
@@ -567,10 +720,10 @@ export function normalizeConfig(options = {}) {
 
   if (
     typeof development.exposeOtp !==
-      'boolean'
+    "boolean"
   ) {
     throw new TypeError(
-      'twoFactor.development.exposeOtp must be a boolean',
+      "twoFactor.development.exposeOtp must be a boolean",
     );
   }
 
@@ -592,9 +745,14 @@ export function normalizeConfig(options = {}) {
       session: Object.freeze({
         ...session,
 
-        refreshToken: Object.freeze({
-          ...refreshToken,
-        }),
+        refreshToken:
+          Object.freeze({
+            ...refreshToken,
+          }),
+      }),
+
+      refreshCookie: Object.freeze({
+        ...refreshCookie,
       }),
     }),
 

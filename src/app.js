@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 
 import { config } from './config/env.js';
 import healthRoutes from './routes/health.routes.js';
@@ -15,15 +16,33 @@ import {
 
 const app = express();
 
+// --------------------------------------------------
+// CORS
+// --------------------------------------------------
+
 app.use(
   cors({
     origin: config.clientOrigin,
+    credentials: true,
   }),
 );
 
+// --------------------------------------------------
+// Request parsing
+// --------------------------------------------------
+
 app.use(express.json());
+app.use(cookieParser());
+
+// --------------------------------------------------
+// Health routes
+// --------------------------------------------------
 
 app.use('/api', healthRoutes);
+
+// --------------------------------------------------
+// Authentication routes
+// --------------------------------------------------
 
 app.use(
   '/api/auth',
@@ -40,6 +59,10 @@ app.use(
       config.twoFactor,
   }),
 );
+
+// --------------------------------------------------
+// Error handling
+// --------------------------------------------------
 
 app.use(notFound);
 app.use(errorHandler);

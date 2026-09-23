@@ -14,6 +14,14 @@ export const defaultConfig = Object.freeze({
         bytes: 32,
       }),
     }),
+
+    refreshCookie: Object.freeze({
+      name: 'auth_refresh',
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      path: '/api/auth',
+    }),
   }),
 
   twoFactor: Object.freeze({

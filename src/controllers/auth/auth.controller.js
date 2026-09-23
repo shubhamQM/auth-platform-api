@@ -7,6 +7,83 @@ export function createAuthController(config) {
     createAuthService(config);
 
   // --------------------------------------------------
+  // Refresh cookie helpers
+  // --------------------------------------------------
+
+  const refreshCookieConfig =
+    config.authentication.refreshCookie;
+
+  const refreshCookieName =
+    refreshCookieConfig.name;
+
+  function getRefreshCookieOptions({
+    expires,
+  } = {}) {
+    const options = {
+      httpOnly:
+        refreshCookieConfig.httpOnly,
+
+      secure:
+        refreshCookieConfig.secure,
+
+      sameSite:
+        refreshCookieConfig.sameSite,
+
+      path:
+        refreshCookieConfig.path,
+    };
+
+    if (expires) {
+      const expiresAt =
+        expires instanceof Date
+          ? expires
+          : new Date(expires);
+
+      if (
+        !Number.isNaN(
+          expiresAt.getTime(),
+        )
+      ) {
+        options.expires =
+          expiresAt;
+      }
+    }
+
+    return options;
+  }
+
+  function setRefreshCookie(
+    res,
+    refreshToken,
+    expiresAt,
+  ) {
+    res.cookie(
+      refreshCookieName,
+      refreshToken,
+      getRefreshCookieOptions({
+        expires: expiresAt,
+      }),
+    );
+  }
+
+  function clearRefreshCookie(res) {
+    res.clearCookie(
+      refreshCookieName,
+      getRefreshCookieOptions(),
+    );
+  }
+
+  function getRefreshTokenFromRequest(
+    req,
+  ) {
+    return (
+      req.cookies?.[
+        refreshCookieName
+      ] ?? null
+    );
+  }
+
+  // --------------------------------------------------
   // Login
   // --------------------------------------------------
 
@@ -31,7 +108,8 @@ export function createAuthController(config) {
 
       if (
         !result.success &&
-        result.reason === 'CAPTCHA_INVALID'
+        result.reason ===
+          'CAPTCHA_INVALID'
       ) {
         return res.status(400).json({
           success: false,
@@ -199,7 +277,8 @@ export function createAuthController(config) {
 
       if (
         !result.success &&
-        result.reason === 'INVALID_OTP'
+        result.reason ===
+          'INVALID_OTP'
       ) {
         return res.status(401).json({
           success: false,
@@ -224,7 +303,8 @@ export function createAuthController(config) {
       ) {
         return res.status(429).json({
           success: false,
-          code: 'MAX_ATTEMPTS_EXCEEDED',
+          code:
+            'MAX_ATTEMPTS_EXCEEDED',
           message:
             'Maximum verification attempts exceeded',
         });
@@ -233,18 +313,25 @@ export function createAuthController(config) {
       // ----------------------------------------------
       // 2FA successful
       //
-      // Authentication is now complete.
-      //
       // auth.service has:
       // - created the authenticated session
       // - issued the access token
       // - generated the initial refresh token
+      //
+      // The refresh token is now transported only
+      // through the HttpOnly cookie.
       // ----------------------------------------------
 
       if (
         result.success &&
         result.twoFactorVerified === true
       ) {
+        setRefreshCookie(
+          res,
+          result.refreshToken,
+          result.session?.expiresAt,
+        );
+
         return res.status(200).json({
           success: true,
 
@@ -261,9 +348,6 @@ export function createAuthController(config) {
 
           expiresIn:
             result.expiresIn,
-
-          refreshToken:
-            result.refreshToken,
 
           session:
             result.session,
@@ -298,9 +382,18 @@ export function createAuthController(config) {
     next,
   ) {
     try {
-      const {
-        refreshToken,
-      } = req.body ?? {};
+      // ----------------------------------------------
+      // Refresh token is intentionally NOT accepted
+      // from req.body.
+      //
+      // cookie-parser exposes the HttpOnly cookie
+      // through req.cookies on the server.
+      // ----------------------------------------------
+
+      const refreshToken =
+        getRefreshTokenFromRequest(
+          req,
+        );
 
       const result =
         await authService
@@ -317,9 +410,12 @@ export function createAuthController(config) {
         result.reason ===
           'INVALID_REFRESH_TOKEN'
       ) {
+        clearRefreshCookie(res);
+
         return res.status(401).json({
           success: false,
-          code: 'INVALID_REFRESH_TOKEN',
+          code:
+            'INVALID_REFRESH_TOKEN',
           message:
             'Invalid refresh token',
         });
@@ -334,6 +430,8 @@ export function createAuthController(config) {
         result.reason ===
           'SESSION_EXPIRED'
       ) {
+        clearRefreshCookie(res);
+
         return res.status(401).json({
           success: false,
           code: 'SESSION_EXPIRED',
@@ -351,9 +449,12 @@ export function createAuthController(config) {
         result.reason ===
           'REFRESH_TOKEN_REUSED'
       ) {
+        clearRefreshCookie(res);
+
         return res.status(401).json({
           success: false,
-          code: 'REFRESH_TOKEN_REUSED',
+          code:
+            'REFRESH_TOKEN_REUSED',
           message:
             'Refresh token is no longer valid',
         });
@@ -368,6 +469,8 @@ export function createAuthController(config) {
         result.reason ===
           'USER_NOT_FOUND'
       ) {
+        clearRefreshCookie(res);
+
         return res.status(401).json({
           success: false,
           code: 'USER_NOT_FOUND',
@@ -385,6 +488,8 @@ export function createAuthController(config) {
         result.reason ===
           'ACCOUNT_INACTIVE'
       ) {
+        clearRefreshCookie(res);
+
         return res.status(403).json({
           success: false,
           code: 'ACCOUNT_INACTIVE',
@@ -396,11 +501,20 @@ export function createAuthController(config) {
       // ----------------------------------------------
       // Refresh successful
       //
-      // The returned refresh token replaces the
-      // previously supplied refresh token.
+      // auth.service rotated the refresh token.
+      //
+      // Replace the old browser cookie with the newly
+      // rotated token while preserving the original
+      // authenticated-session expiry.
       // ----------------------------------------------
 
       if (result.success) {
+        setRefreshCookie(
+          res,
+          result.refreshToken,
+          result.session?.expiresAt,
+        );
+
         return res.status(200).json({
           success: true,
 
@@ -415,9 +529,6 @@ export function createAuthController(config) {
 
           expiresIn:
             result.expiresIn,
-
-          refreshToken:
-            result.refreshToken,
 
           session:
             result.session,
@@ -452,9 +563,15 @@ export function createAuthController(config) {
     next,
   ) {
     try {
-      const {
-        refreshToken,
-      } = req.body ?? {};
+      // ----------------------------------------------
+      // Refresh token comes only from the HttpOnly
+      // cookie.
+      // ----------------------------------------------
+
+      const refreshToken =
+        getRefreshTokenFromRequest(
+          req,
+        );
 
       const result =
         await authService.logout({
@@ -463,6 +580,9 @@ export function createAuthController(config) {
 
       // ----------------------------------------------
       // Invalid / unavailable refresh token
+      //
+      // Even if the server cannot use the supplied
+      // token, remove the stale browser cookie.
       // ----------------------------------------------
 
       if (
@@ -470,9 +590,12 @@ export function createAuthController(config) {
         result.reason ===
           'INVALID_REFRESH_TOKEN'
       ) {
+        clearRefreshCookie(res);
+
         return res.status(401).json({
           success: false,
-          code: 'INVALID_REFRESH_TOKEN',
+          code:
+            'INVALID_REFRESH_TOKEN',
           message:
             'Invalid refresh token',
         });
@@ -483,6 +606,8 @@ export function createAuthController(config) {
       // ----------------------------------------------
 
       if (result.success) {
+        clearRefreshCookie(res);
+
         return res.status(200).json({
           success: true,
 
@@ -593,7 +718,8 @@ export function createAuthController(config) {
       ) {
         return res.status(400).json({
           success: false,
-          code: 'CHANNEL_NOT_REQUIRED',
+          code:
+            'CHANNEL_NOT_REQUIRED',
           message:
             'Requested authentication channel is not required for this challenge',
         });
@@ -610,7 +736,8 @@ export function createAuthController(config) {
       ) {
         return res.status(429).json({
           success: false,
-          code: 'MAX_ATTEMPTS_EXCEEDED',
+          code:
+            'MAX_ATTEMPTS_EXCEEDED',
           message:
             'Maximum verification attempts exceeded',
         });
@@ -627,7 +754,8 @@ export function createAuthController(config) {
       ) {
         return res.status(429).json({
           success: false,
-          code: 'MAX_RESENDS_EXCEEDED',
+          code:
+            'MAX_RESENDS_EXCEEDED',
           message:
             'Maximum OTP resend attempts exceeded',
         });
@@ -739,7 +867,8 @@ export function createAuthController(config) {
       ) {
         return res.status(401).json({
           success: false,
-          code: 'INVALID_AUTH_CONTEXT',
+          code:
+            'INVALID_AUTH_CONTEXT',
           message:
             'Invalid authentication context',
         });

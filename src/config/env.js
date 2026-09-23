@@ -66,6 +66,46 @@ const exposeDevelopmentOtp =
   process.env.EXPOSE_DEVELOPMENT_OTP ===
     'true';
 
+// --------------------------------------------------
+// Refresh-token cookie configuration
+//
+// The refresh token will eventually be stored in an
+// HttpOnly browser cookie instead of being managed
+// directly by frontend JavaScript.
+//
+// Do not configure a cookie domain here. Keeping the
+// cookie host-only limits it to the Auth API host.
+// --------------------------------------------------
+
+const refreshCookieName =
+  process.env.AUTH_REFRESH_COOKIE_NAME
+    ?.trim() ||
+  'auth_refresh';
+
+const refreshCookie =
+  Object.freeze({
+    name:
+      refreshCookieName,
+
+    httpOnly:
+      true,
+
+    secure:
+      nodeEnv === 'production',
+
+    sameSite:
+      nodeEnv === 'production'
+        ? 'none'
+        : 'lax',
+
+    path:
+      '/api/auth',
+  });
+
+// --------------------------------------------------
+// Application configuration
+// --------------------------------------------------
+
 export const config = {
   nodeEnv,
 
@@ -101,6 +141,8 @@ export const config = {
       secret:
         process.env.JWT_ACCESS_SECRET,
     }),
+
+    refreshCookie,
   }),
 
   twoFactor: Object.freeze({
