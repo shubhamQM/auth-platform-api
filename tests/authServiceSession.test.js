@@ -119,6 +119,23 @@ async function run() {
 
 // --------------------------------------------------
 // 4. Create isolated temporary user
+//
+// Important:
+//
+// The shared master User schema now uses:
+//
+// - orgCode
+// - phoneNo
+// - roleCode
+// - activeRoleCode
+// - fullName
+//
+// The auth service still uses the internal name
+// "tenantId" inside session/JWT context.
+//
+// Therefore this test deliberately maps:
+//
+// tenantId -> user.orgCode
 // --------------------------------------------------
 
 const uniqueId =
@@ -130,8 +147,11 @@ testUserId =
 const userCode =
   `AUTH-SVC-${uniqueId}`;
 
+// Internal authentication/session context.
+//
+// This must match the temporary user's orgCode.
 const tenantId =
-  `TEN-AUTH-SVC-${uniqueId}`;
+  `ORG-AUTH-SVC-${uniqueId}`;
 
 const email =
   `auth-service-${uniqueId}@example.test`;
@@ -142,35 +162,42 @@ await User.create({
 
   userCode,
 
-  tenantId,
+  fullName:
+    "Auth ServiceTest",
 
   firstName:
     "Auth",
+
+  middleName:
+    null,
 
   lastName:
     "ServiceTest",
 
   email,
 
-  mobile:
+  phoneNo:
     "9000000001",
+
+  // This test exercises refresh/session behavior,
+  // not password verification.
+  //
+  // A non-empty value is required by the current
+  // User schema.
+  password:
+    "TEST_ONLY_PASSWORD_VALUE_NOT_USED_FOR_LOGIN",
+
+  roleCode:
+    [],
+
+  activeRoleCode:
+    null,
+
+  orgCode:
+    tenantId,
 
   userType:
     "employee",
-
-  roleIds: [],
-
-  department:
-    "AUTH_TEST",
-
-  designation:
-    "TEST_USER",
-
-  isProfileComplete:
-    true,
-
-  createdBySystem:
-    true,
 
   isActive:
     true,
